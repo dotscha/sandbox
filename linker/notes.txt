@@ -1,0 +1,30 @@
+Some "faster" memcopy routines.
+
+; case: dest<src
+copy_fw: 
+    ldy #>(src+len)->src	;? verify
+    ldx #<src
+l:	lda src & $ff00,x	;always 4 cycles
+    sta dest-(<src),x	;always 5 cycles
+    inx
+    bne l
+    inc l+2
+    inc l+5
+    dey
+    ben l
+	
+;and the rest if (src+len) & $ff != 0
+    ldy #<(src+len)
+l2: lda (src+len) & $ff00,x	;always 4 cycles
+    sta dest+len-(<src),x	;always 5 cycles
+    inx
+    dey
+    bne l2
+	
+	
+
+; case: dest>src
+copy_bw:
+
+	
+	
