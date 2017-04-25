@@ -5,7 +5,7 @@ class ASM:
 		self.ram = []
 		self.start = None
 		self.pc = 0x0200
-		self.lables = {}
+		self.labels = {}
 		self.resolve = []
 		
 	def compile(self):
@@ -19,11 +19,11 @@ class ASM:
 		self.pc = newpc & 0xffff
 		return self
 		
-	def lable(self,name):
-		return self.lables[name]
+	def label(self,name):
+		return self.labels[name]
 		
-	def setlable(self,name):
-		self.lables[name] = self.pc
+	def setlabel(self,name):
+		self.labels[name] = self.pc
 		return self
 	
 	def poke(self,addr,byte):
@@ -55,7 +55,7 @@ class ASM:
 		if type(b)==type(""):
 			self.resolve.append(eval("lambda _asmctx_: _asmctx_.poke({pc},{b})".format(
 				pc = self.pc+1,
-				b = b.replace("lable(","_asmctx_.lable(")
+				b = b.replace("label(","_asmctx_.label(")
 			)))
 			b = 0
 		return self.code([op,b])
@@ -64,7 +64,7 @@ class ASM:
 		if type(w)==type(""):
 			self.resolve.append(eval("lambda _asmctx_: _asmctx_.pokes({pc},_asmctx_.word({w}))".format(
 				pc = self.pc+1,
-				w = w.replace("lable(","_asmctx_.lable(")
+				w = w.replace("label(","_asmctx_.label(")
 			)))
 			w = 0
 		return self.code([op]+self.word(w))
@@ -87,8 +87,8 @@ class ASM:
 
 a = ASM()
 c=23
-a.setpc(0x1028).lda(13).lda_abs_x("lable('l')")
-a.setpc(0x1020).setlable("l").lda("lable('l')/256").ldx("lable('l')&255").ldy("c")
+a.setpc(0x1028).lda(13).lda_abs_x("label('l')")
+a.setpc(0x1020).setlabel("l").lda("label('l')/256").ldx("label('l')&255").ldy("c")
 
 print(a.ram)
 a.compile()
