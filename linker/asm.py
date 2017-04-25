@@ -53,9 +53,8 @@ class ASM:
 	
 	def op_b(self,op,b):
 		if type(b)==type(""):
-			self.resolve.append(eval("lambda _asmctx_: _asmctx_.pokes({pc},[{op},{b}])".format(
-				pc = self.pc,
-				op = op,
+			self.resolve.append(eval("lambda _asmctx_: _asmctx_.poke({pc},{b})".format(
+				pc = self.pc+1,
 				b = b.replace("lable(","_asmctx_.lable(")
 			)))
 			b = 0
@@ -63,9 +62,8 @@ class ASM:
 		
 	def op_w(self,op,w):
 		if type(w)==type(""):
-			self.resolve.append(eval("lambda _asmctx_: _asmctx_.pokes({pc},[{op}]+_asmctx_.word({w}))".format(
-				pc = self.pc,
-				op = op,
+			self.resolve.append(eval("lambda _asmctx_: _asmctx_.pokes({pc},_asmctx_.word({w}))".format(
+				pc = self.pc+1,
 				w = w.replace("lable(","_asmctx_.lable(")
 			)))
 			w = 0
