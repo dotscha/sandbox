@@ -1,4 +1,14 @@
 
+cpu6502ops = {
+	0x00:('brk',''     ,6),
+	0x60:('rts',''     ,6),
+	0xa0:('ldy','#'    ,2),
+	0xa2:('ldx','#'    ,2),
+	0xa9:('lda','#'    ,2),
+	0xbd:('lda','abs_x',4,5),
+	  -1:-1
+}
+
 class ASM:
 	
 	def __init__(self):
@@ -22,8 +32,8 @@ class ASM:
 	def label(self,name):
 		return self.labels[name]
 		
-	def setlabel(self,name):
-		self.labels[name] = self.pc
+	def setlabel(self,name,value=None):
+		self.labels[name] = self.pc if value==None else value
 		return self
 	
 	def poke(self,addr,byte):
@@ -54,18 +64,16 @@ class ASM:
 	def op_b(self,op,b):
 		if type(b)==type(""):
 			self.resolve.append(eval("lambda _asmctx_: _asmctx_.poke({pc},{b})".format(
-				pc = self.pc+1,
-				b = b.replace("label(","_asmctx_.label(")
-			)))
+				pc = self.pc+1, b = b
+			),self.labels))
 			b = 0
 		return self.code([op,b])
 		
 	def op_w(self,op,w):
 		if type(w)==type(""):
 			self.resolve.append(eval("lambda _asmctx_: _asmctx_.pokes({pc},_asmctx_.word({w}))".format(
-				pc = self.pc+1,
-				w = w.replace("label(","_asmctx_.label(")
-			)))
+				pc = self.pc+1, w = w
+			),self.labels))
 			w = 0
 		return self.code([op]+self.word(w))
 	
@@ -86,9 +94,8 @@ class ASM:
 		return self.op_b(0xa0,b)
 
 a = ASM()
-c=23
-a.setpc(0x1028).lda(13).lda_abs_x("label('l')")
-a.setpc(0x1020).setlabel("l").lda("label('l')/256").ldx("label('l')&255").ldy("c")
+a.setpc(0x1028).lda(13).lda_abs_x("l")
+a.setpc(0x1020).setlabel("l").lda("l/256").ldx("l&255")
 
 print(a.ram)
 a.compile()
