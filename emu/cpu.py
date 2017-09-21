@@ -15,7 +15,7 @@ class CPU:
 		self.Z = False
 		self.I = False
 		self.D = False
-		self.B = False
+		#self.B = False
 		self.V = False
 		self.N = False
 
@@ -50,19 +50,43 @@ class CPU:
 			"JMP" : CPU._jmp,
 			"JSR" : CPU._jsr,
 			"RTS" : CPU._rts,
+			"BRK" : CPU._brk,
 			"TAX" : CPU._tax,
 			"TXA" : CPU._txa,
 			"TAY" : CPU._tay,
 			"TYA" : CPU._tya,
 			"TSX" : CPU._tsx,
 			"TXS" : CPU._txs,
+			"NOP" : CPU._nop,
+			"PHA" : CPU._pha,
+			"PLA" : CPU._pla,
+			"PHP" : CPU._php,
+			"PLP" : CPU._plp,
+			"BEQ" : CPU._beq,
+			"BNE" : CPU._bne,
 		}
+
+	def getP(self):
+		b = lambda b : 1 if b else 0 
+		#N V - B D I Z C
+		#+ b(self.B)*16 
+		return b(self.N)*128 + b(self.V)*64 + b(self.D)*8 + b(self.I)*4 + b(self.Z)*2 + b(self.C)
+			
+	def setP(self,p):
+		self.N = 0 < p&128
+		self.V = 0 < p&64
+		#self.B = 0 < p&16
+		self.D = 0 < p&8
+		self.I = 0 < p&4
+		self.Z = 0 < p&2
+		self.D = 0 < p&1
 
 	def step(self,mem):
 		opcode, addr_mode, op_name, op_len, op_cycles, opt = opcodes[mem.get(self.PC)]
 		inst = self.instruction[op_name]
 		gett,sett = self.addressing_mode[addr_mode]
 		inst(self,mem,gett,sett,op_len)
+		self.PC = self.PC&65535
 
 	####################
 	# Addressing Modes #
@@ -160,9 +184,9 @@ class CPU:
 	def _get_rel(self,mem):
 		rel = mem.get(self.PC+1)
 		if rel<128:
-			return self.PC+2+rel
+			return 2+rel
 		else:
-			return self.PC+2+rel-256
+			return 2+rel-256
 
 	################
 	# Instructions #
@@ -202,28 +226,28 @@ class CPU:
 	def _inx(self,mem,getter,setter,op_len):
 		self.X = (self.X+1)&255
 		self._update_nz(self.X)
-		self.PC += op_len
+		self.PC += 1
 
 	def _dex(self,mem,getter,setter,op_len):
 		self.X = (self.X+255)&255
 		self._update_nz(self.X)
-		self.PC += op_len
+		self.PC += 1
 
 	def _iny(self,mem,getter,setter,op_len):
 		self.Y = (self.Y+1)&255
 		self._update_nz(self.Y)
-		self.PC += op_len
+		self.PC += 1
 
 	def _dey(self,mem,getter,setter,op_len):
 		self.Y = (self.Y+255)&255
 		self._update_nz(self.Y)
-		self.PC += op_len
+		self.PC += 1
 
 	def _jmp(self,mem,getter,setter,op_len):
 		self.PC = mem.get(self.PC+1)+256*mem.get(self.PC+2)
 		
 	def _jsr(self,mem,getter,setter,op_len):
-		self._push(mem,(seld.PC+2)/255)
+		self._push(mem,((seld.PC+2)&65535)/255)
 		self._push(mem,(seld.PC+2)&255)
 		self._jmp(mem,None,None,-1)
 	
@@ -258,6 +282,48 @@ class CPU:
 	def _txs(self,mem,getter,setter,op_len):
 		self.SP = self.X
 		self.PC += 1
+	
+	def _nop(self,mem,getter,setter,op_len):
+		self.PC += op_len
+		
+	def _pha(self,mem,getter,setter,op_len):
+		self._push(mem,self.A)
+		self.PC += 1
+		
+	def _pla(self,mem,getter,setter,op_len):
+		self.A =  self._pull(mem)
+		self._update_nz(self.A)
+		self.PC += 1
+		
+	def _php(self,mem,getter,setter,op_len):
+		self._push(mem,self.getP()|16)	#yes, B=1 is pushed on stack
+		self.PC += 1
+		
+	def _plp(self,mem,getter,setter,op_len):
+		self.setP(self._pull(mem))
+		self.PC += 1
+	
+	def _beq(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if self.Z else 2
+		
+	def _bne(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if not self.Z else 2
+		
+	def _brk(self,mem,getter,setter,op_len):
+		addr = mem.get(0xfffe)+256*mem.get(0xffff)
+		self._push(mem,(self.PC+2)&256)
+		self._push(mem,((self.PC+2)&65535)/256)
+		self._push(mem,self.getP()|16)
+		self.I = True
+		self.PC = addr
+		
+	def irq(self,mem):
+		addr = mem.get(0xfffe)+256*mem.get(0xffff)
+		self._push(mem,self.PC&256)
+		self._push(mem,self.PC/256)
+		self._push(mem,self.getP())	#B=0
+		self.I = True
+		self.PC = addr
 		
 ram = RAM()
 cpu = CPU()
