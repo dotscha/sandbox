@@ -64,6 +64,12 @@ class CPU:
 			"PLP" : CPU._plp,
 			"BEQ" : CPU._beq,
 			"BNE" : CPU._bne,
+			"BCC" : CPU._bcc,
+			"BCS" : CPU._bcs,
+			"BMI" : CPU._bmi,
+			"BPL" : CPU._bpl,
+			"BVC" : CPU._bvc,
+			"BVS" : CPU._bvs,
 		}
 
 	def getP(self):
@@ -308,6 +314,24 @@ class CPU:
 		
 	def _bne(self,mem,getter,setter,op_len):
 		self.PC += getter(self,mem) if not self.Z else 2
+		
+	def _bcc(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if not self.C else 2
+		
+	def _bcs(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if self.C else 2
+		
+	def _bpl(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if not self.N else 2
+		
+	def _bmi(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if self.N else 2
+		
+	def _bvc(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if not self.V else 2
+		
+	def _bvs(self,mem,getter,setter,op_len):
+		self.PC += getter(self,mem) if self.V else 2
 		
 	def _brk(self,mem,getter,setter,op_len):
 		addr = mem.get(0xfffe)+256*mem.get(0xffff)
