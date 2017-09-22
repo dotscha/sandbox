@@ -85,7 +85,7 @@ class CPU:
 		self.D = 0 < p&8
 		self.I = 0 < p&4
 		self.Z = 0 < p&2
-		self.D = 0 < p&1
+		self.C = 0 < p&1
 
 	def step(self,mem):
 		opcode, addr_mode, op_name, op_len, op_cycles, opt = opcodes[mem.get(self.PC)]
@@ -340,7 +340,26 @@ class CPU:
 		self._push(mem,self.getP()|16)
 		self.I = True
 		self.PC = addr
-		
+	
+	def _adc(self,mem,getter,setter,op_len):
+		a = self.A
+		b = getter(self,mem)
+		c = 1 if self.C else 0
+		if self.D:
+			self.Z = ((a+b+c)&0xff)!=0
+			al = (a&0x0f) + (b&0x0f) + c
+			a = (a&0xf0) + (b&0xf0)
+			al = (al+0x06)&0x0f + 0x10 if al>0x09 else al
+			a += al
+			self.N = a>127
+			#self.V = 
+			a = a + 0x60 if a>0x90 else a
+			self.A = a&0xff
+			self.C = a>0xff
+		else:
+			pass
+		self.PC += op_len
+	
 	def irq(self,mem):
 		addr = mem.get(0xfffe)+256*mem.get(0xffff)
 		self._push(mem,self.PC&256)
