@@ -70,6 +70,8 @@ class CPU:
 			"BPL" : CPU._bpl,
 			"BVC" : CPU._bvc,
 			"BVS" : CPU._bvs,
+			"ADC" : CPU._adc,
+			"SBC" : CPU._sbc
 		}
 
 	def getP(self):
@@ -348,18 +350,37 @@ class CPU:
 		if self.D:
 			self.Z = ((a+b+c)&0xff)!=0
 			al = (a&0x0f) + (b&0x0f) + c
-			a = (a&0xf0) + (b&0xf0)
+			ah = (a&0xf0) + (b&0xf0)
 			al = (al+0x06)&0x0f + 0x10 if al>0x09 else al
-			a += al
-			self.N = a>127
-			#self.V = 
-			a = a + 0x60 if a>0x90 else a
-			self.A = a&0xff
-			self.C = a>0xff
+			ah += al
+			self.N = ah>127
+			self.V = ((a ^ b) & (a ^ ah) & 128) > 0
+			ah = ah + 0x60 if ah>0x90 else ah
+			self.A = ah&0xff
+			self.C = ah>0xff
 		else:
-			pass
+			sum = a + b + c
+			self.A = sum&255
+			self.C = sun>255
+			self.V = ((a ^ b) & (a ^ sum) & 128) > 0
+			self._update_nz(self.A)
+		self.PC += op_len
+
+	def _sbc(self,mem,getter,setter,op_len):
+		a = self.A
+		b = getter(self,mem)
+		c = 1 if self.C else 0
+		if self.D:
+			raise "SBC in decimal mode is not implemented yet"
+		else:
+			sub = 256 + a - b + 1 - c
+			self.A = sub&255
+			self.C = (sub & 256)==0
+			self.V = ((a ^ b) & (a ^ sub) & 128) > 0
+			self.update_nz(A)
 		self.PC += op_len
 	
+		
 	def irq(self,mem):
 		addr = mem.get(0xfffe)+256*mem.get(0xffff)
 		self._push(mem,self.PC&256)
